@@ -494,3 +494,33 @@ Code push → CI build → Test → Tag image → Deploy → Stop old container 
 * Docker standardizes environments and deployment artifacts
 * CI/CD automates build/test/deploy to reduce human error
 * Secure secrets, version images, isolate environments, and clean old containers to avoid conflicts and drift
+
+## 🔀 Git Workflow & Contribution Guidelines
+
+### Branch Naming Convention
+We follow a structured branch naming strategy:
+
+- feature/<feature-name>
+- fix/<bug-name>
+- chore/<task-name>
+- docs/<update-name>
+
+### Pull Request Process
+- All changes must be submitted via Pull Requests
+- Direct pushes to `main` are disabled
+- Each PR must follow the PR template
+- At least one team member must approve before merge
+
+### Code Review Checklist
+- Code builds and runs correctly
+- No console errors or warnings
+- ESLint & Prettier checks pass
+- Code is readable and documented
+- No sensitive information exposed
+
+### Why This Workflow
+This workflow ensures:
+- High code quality
+- Clean Git history
+- Faster and safer collaboration
+- Production stability for OASIS
