@@ -444,18 +444,224 @@ Common landing zones once containerized:
 Sensitive data must not be hardcoded.
 
 **Best practices**
-* Use `.env` locally
+* Use `.env.local` for local development (never commit)
+* Use `.env.example` as a template (commit this)
 * Use GitHub Secrets in CI/CD
 * Use AWS Parameter Store or Azure Key Vault in production
 
-**Example**
+**Files in this project:**
+* `.env.local` → contains actual secrets (ignored by Git)
+* `.env.example` → template with placeholder values and documentation
 
-```env
-DATABASE_URL=********
-JWT_SECRET=********
+---
+
+## Environment Variables Reference
+
+### Complete Environment Variables Table
+
+| Variable Name | Scope | Required | Default | Description |
+|--------------|-------|----------|---------|-------------|
+| **DATABASE_URL** | Server-only | Yes | - | PostgreSQL connection string. Format: `postgresql://user:password@host:port/dbname` |
+| **DATABASE_POOL_MIN** | Server-only | No | 2 | Minimum database connection pool size |
+| **DATABASE_POOL_MAX** | Server-only | No | 10 | Maximum database connection pool size |
+| **REDIS_URL** | Server-only | No | `redis://localhost:6379` | Redis connection URL for caching and sessions |
+| **REDIS_PASSWORD** | Server-only | No | - | Redis authentication password (if required) |
+| **JWT_SECRET** | Server-only | Yes | - | Secret key for JWT token signing/verification (min 32 characters) |
+| **JWT_EXPIRES_IN** | Server-only | No | 86400 | JWT token expiration time in seconds (default: 24 hours) |
+| **SESSION_SECRET** | Server-only | Yes | - | Secret key for session cookie encryption (min 32 characters) |
+| **NODE_ENV** | Build-time & Runtime | No | `development` | Application environment: `development`, `staging`, or `production` |
+| **NEXT_PUBLIC_API_URL** | Client-side (exposed) | Yes | - | API base URL accessible from browser. Must be prefixed with `NEXT_PUBLIC_` |
+| **NEXT_PUBLIC_APP_VERSION** | Client-side (exposed) | No | `1.0.0` | Application version for debugging/logging |
+| **PORT** | Server-only | No | 3000 | Port number for Next.js server |
+
+### Variable Scope Explanation
+
+**Server-only variables:**
+* Accessed via `process.env` in server-side code (API routes, Server Components, Server Actions)
+* **Never** exposed to the browser
+* Can contain sensitive secrets (database URLs, API keys, tokens)
+
+**Client-safe variables (NEXT_PUBLIC_ prefix):**
+* Must be prefixed with `NEXT_PUBLIC_` to be accessible in the browser
+* Exposed in the client bundle — **never include secrets**
+* Accessible via `process.env.NEXT_PUBLIC_*` in both server and client code
+* Bundled at build time, so changing them requires a rebuild
+
+**Build-time vs Runtime variables:**
+* `NODE_ENV` is used during both build and runtime
+* `NEXT_PUBLIC_*` variables are embedded at build time
+* Server-only variables are read at runtime from the environment
+
+### Setting Up Environment Variables
+
+1. **Copy the template:**
+   ```bash
+   cp .env.example .env.local
+   ```
+
+2. **Fill in actual values in `.env.local`:**
+   ```env
+   DATABASE_URL=postgresql://postgres:yourpassword@localhost:5432/oasis_dev
+   JWT_SECRET=your-actual-secret-key-here-min-32-chars
+   SESSION_SECRET=your-actual-session-secret-here-min-32-chars
+   ```
+
+3. **Verify `.env.local` is in `.gitignore`:**
+   ```bash
+   git check-ignore .env.local
+   # Should output: .env.local
+   ```
+
+---
+
+## Build-Time vs Runtime Variable Usage
+
+### Understanding Variable Timing
+
+**Build-time variables:**
+* Embedded into the JavaScript bundle during `next build`
+* `NEXT_PUBLIC_*` variables are inlined into client code
+* Changes require a rebuild to take effect
+* Visible in the browser's source code (only use for non-sensitive config)
+
+**Runtime variables:**
+* Read from the environment when the server starts
+* Server-only variables (without `NEXT_PUBLIC_`) are read at runtime
+* Changes take effect after server restart (no rebuild needed)
+* Never exposed to the client
+
+### Example Usage in Code
+
+**Server-side (API Route or Server Component):**
+```typescript
+// ✅ Safe: Server-only variable
+const dbUrl = process.env.DATABASE_URL;
+
+// ✅ Safe: Client-safe variable (can use on server too)
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 ```
 
-Keeps security and flexibility across environments.
+**Client-side (React Component):**
+```typescript
+// ✅ Safe: Client-safe variable
+const apiUrl = process.env.NEXT_PUBLIC_API_URL;
+
+// ❌ DANGEROUS: This will be undefined on client!
+// const secret = process.env.JWT_SECRET; // undefined in browser
+```
+
+---
+
+## Common Pitfalls & How We Avoid Them
+
+### Pitfall 1: Accidental Secret Exposure
+
+**Problem:**
+* Adding secrets to `NEXT_PUBLIC_*` variables exposes them in the browser
+* Committing `.env.local` to Git leaks production secrets
+
+**How we avoided it:**
+* ✅ Strict `.gitignore` rules (`.env.local`, `.env*.local`)
+* ✅ Documented scope in `.env.example` (clearly marked "Server-only" vs "Client-side")
+* ✅ Code review checklist includes "No sensitive information exposed"
+* ✅ Never use `NEXT_PUBLIC_` prefix for secrets
+
+**Reflection:**
+* This was learned from the ShopLite case study where credentials were accidentally exposed
+* Documentation in `.env.example` helps developers understand scope before adding variables
+
+---
+
+### Pitfall 2: Missing Environment Variables at Runtime
+
+**Problem:**
+* Application crashes with "undefined" errors when required variables are missing
+* Different behavior between development and production
+
+**How we avoided it:**
+* ✅ `.env.example` documents all required variables
+* ✅ Validation checks in application startup (can be added to `next.config.ts` or startup script)
+* ✅ Clear error messages pointing to missing variables
+* ✅ Docker deployment uses explicit environment variable injection
+
+**Reflection:**
+* The "Never-Ending Deployment Loop" case study showed this issue
+* We ensure all required variables are documented and validated
+
+---
+
+### Pitfall 3: Build-Time vs Runtime Confusion
+
+**Problem:**
+* Developers change `NEXT_PUBLIC_*` variables but don't rebuild
+* Server-only variables used in client code (result: undefined)
+
+**How we avoided it:**
+* ✅ Clear documentation of build-time vs runtime behavior
+* ✅ `.env.example` includes scope notes for each variable
+* ✅ Code examples in README showing correct usage patterns
+* ✅ TypeScript types can help catch client-side access to server-only variables
+
+**Reflection:**
+* Understanding Next.js variable embedding is crucial
+* Documentation helps prevent misuse, even if it seems obvious to experienced developers
+
+---
+
+### Pitfall 4: Environment-Specific Configuration Mixing
+
+**Problem:**
+* Staging credentials used in production (like ShopLite incident)
+* Manual credential copying leads to errors
+
+**How we avoided it:**
+* ✅ Separate environment files: `.env.development`, `.env.staging`, `.env.production`
+* ✅ CI/CD uses environment-specific secrets (GitHub Secrets scoped per environment)
+* ✅ Production secrets never stored locally or in code
+* ✅ Docker images are environment-agnostic (variables injected at deployment time)
+
+**Reflection:**
+* This directly addresses the ShopLite case study failure
+* Our architecture ensures production can never accidentally access staging credentials
+
+---
+
+### Pitfall 5: Weak or Missing Secrets
+
+**Problem:**
+* Using weak secrets (e.g., "password123") in production
+* Reusing secrets across environments
+
+**How we avoided it:**
+* ✅ `.env.example` specifies minimum length (32 characters for JWT_SECRET)
+* ✅ Documentation emphasizes generating strong random strings
+* ✅ Each environment should have unique secrets
+* ✅ Production secrets should be generated using secure random generators
+
+**Reflection:**
+* Security best practices are documented upfront
+* Helps developers avoid creating weak configurations
+
+---
+
+## Summary: Environment Variable Best Practices
+
+✅ **DO:**
+* Use `.env.local` for local development secrets
+* Keep `.env.example` updated and committed
+* Prefix client-safe variables with `NEXT_PUBLIC_`
+* Document scope (server vs client) for each variable
+* Validate required variables at startup
+* Use strong, unique secrets per environment
+* Keep production secrets in secure secret managers
+
+❌ **DON'T:**
+* Commit `.env.local` or any file with actual secrets
+* Use `NEXT_PUBLIC_` for sensitive data
+* Share secrets between environments
+* Use weak or default secrets in production
+* Access server-only variables in client code
+* Hardcode configuration values in code
 
 ---
 
