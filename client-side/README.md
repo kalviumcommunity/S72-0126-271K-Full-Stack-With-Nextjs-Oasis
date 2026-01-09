@@ -1,36 +1,69 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+## 🧩 Code Quality & Developer Experience
 
-## Getting Started
+This project uses Strict TypeScript, ESLint + Prettier, and Git pre-commit hooks (Husky + lint-staged) to maintain high code quality, reduce bugs, and ensure team-wide consistency.
 
-First, run the development server:
+## ✅ Why Strict TypeScript Mode Reduces Runtime Bugs
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Strict TypeScript mode enforces stronger type safety at compile time. By enabling strict checks (such as strictNullChecks, noImplicitAny, and strictFunctionTypes), many common runtime errors are caught before the code runs.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Key benefits:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Prevents accessing undefined or null values unintentionally
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Forces explicit typing, reducing assumptions in logic
 
-## Learn More
+- Catches incorrect function arguments and return types early
 
-To learn more about Next.js, take a look at the following resources:
+- Makes refactoring safer and more predictable
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- By shifting error detection from runtime to development time, strict TypeScript significantly reduces bugs that would otherwise appear in production.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🧹 What ESLint + Prettier Enforce
 
-## Deploy on Vercel
+This project combines ESLint for code correctness and Prettier for consistent formatting.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## ESLint enforces:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Detection of unused variables and imports
+
+- Prevention of common JavaScript and TypeScript logic errors
+
+- Best practices for React and Next.js
+
+- Consistent use of modern JavaScript/TypeScript syntax
+
+## Prettier enforces:
+
+- Consistent indentation, spacing, and line breaks
+
+- Uniform formatting across all files
+
+- Elimination of style-related debates in code reviews
+
+- Using eslint-config-prettier ensures there are no conflicts between linting rules and formatting rules.
+
+## 🔒 How Pre-Commit Hooks Improve Team Consistency
+
+Pre-commit hooks run automatically before every Git commit to ensure code quality standards are met.
+
+## With Husky + lint-staged, the project:
+
+- Runs ESLint and Prettier only on staged files
+
+- Prevents committing code with linting or formatting errors
+
+- Ensures all contributors follow the same rules automatically
+
+- Reduces code review time by catching issues early
+
+- This creates a shared baseline of quality, making collaboration smoother and preventing inconsistent or broken code from entering the repository.
+
+## 📌 Summary
+
+- Strict TypeScript catches bugs early
+
+- ESLint + Prettier enforce correctness and consistency
+
+- Pre-commit hooks automate quality checks for every contributor
+
+- Together, these tools create a reliable, scalable, and team-friendly development workflow.
