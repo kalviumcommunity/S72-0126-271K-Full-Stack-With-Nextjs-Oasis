@@ -808,7 +808,7 @@ From the `server-side` directory:
 - **Seed data**:
 
   ```bash
-  npx ts-node prisma/seed.ts
+  npx prisma db seed
   ```
 
   The seeding script:
@@ -820,6 +820,69 @@ From the `server-side` directory:
   - Adds comments on tasks to verify the `Comment` relationships.
 
   Take a screenshot of the terminal output (`Database seeded successfully ✅`) as evidence of successful seeding.
+
+### Migration Workflow, Reset, and Verification
+
+- **Create and run the first migration** (already configured for `init_schema`):
+
+  ```bash
+  npx prisma migrate dev --name init_schema
+  ```
+
+  This:
+
+  - Creates the required tables and relationships in the database.
+  - Generates SQL migration files under `prisma/migrations/<timestamp>_init_schema/`.
+
+- **Make future schema changes**:
+
+  After editing `prisma/schema.prisma`, create a new migration, for example:
+
+  ```bash
+  npx prisma migrate dev --name add_new_table
+  ```
+
+  Each migration captures an incremental change, preserving a full history of schema evolution.
+
+- **Reset the database while keeping migration history**:
+
+  ```bash
+  npx prisma migrate reset
+  ```
+
+  This command:
+
+  - Drops and recreates the database.
+  - Re-applies all migrations in order.
+  - Re-runs the seed script (`prisma db seed`) automatically.
+
+  This is ideal for local development when you want a clean database while still validating that your migration chain is consistent.
+
+- **Verify seeded data**:
+
+  - Use Prisma Studio:
+
+    ```bash
+    npx prisma studio
+    ```
+
+    Then, in the browser UI, inspect `User`, `Project`, `Task`, `Team`, and `Comment` tables to confirm the seed records.
+
+  - Or use your SQL client to query the tables directly.
+
+- **Idempotent seeding**:
+
+  - The `prisma/seed.ts` script first clears all existing records using `deleteMany` inside a transaction.
+  - This means running `npx prisma db seed` multiple times will not duplicate data; you always end up with the same consistent seed state.
+
+### Reflection: Protecting Production Data During Migrations
+
+- In development, commands like `migrate reset` and destructive seeding are safe and convenient.
+- In staging/production:
+  - Never run `prisma migrate reset` against real data; use `prisma migrate deploy` instead to apply existing migrations without dropping the database.
+  - Avoid destructive operations (`deleteMany`, test seeds) against production; use one-way, append-only migrations and dedicated data-migration scripts that are carefully reviewed.
+  - Ensure that environment variables (`DATABASE_URL`) clearly distinguish dev/staging/prod and are managed via secret managers so you do not accidentally point migration commands at a production database.
+
 
 ### Reflection & Challenges
 

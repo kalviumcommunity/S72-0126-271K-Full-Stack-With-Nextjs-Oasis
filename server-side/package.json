@@ -2,7 +2,10 @@
   "scripts": {
     "prisma:migrate": "prisma migrate dev --name init_schema",
     "prisma:generate": "prisma generate",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:seed:manual": "ts-node prisma/seed.ts"
+  },
+  "prisma": {
+    "seed": "ts-node prisma/seed.ts"
   },
   "devDependencies": {
     "prisma": "^7.2.0",
