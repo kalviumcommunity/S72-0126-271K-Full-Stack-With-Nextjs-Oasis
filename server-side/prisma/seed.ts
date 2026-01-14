@@ -3,6 +3,16 @@ import { PrismaClient, UserRole, TeamRole, ProjectStatus } from '@prisma/client'
 const prisma = new PrismaClient();
 
 async function main() {
+  // Clear existing data to make seeding idempotent in development
+  await prisma.$transaction([
+    prisma.comment.deleteMany(),
+    prisma.task.deleteMany(),
+    prisma.project.deleteMany(),
+    prisma.teamMember.deleteMany(),
+    prisma.team.deleteMany(),
+    prisma.user.deleteMany(),
+  ]);
+
   // Create users
   const alice = await prisma.user.create({
     data: {
