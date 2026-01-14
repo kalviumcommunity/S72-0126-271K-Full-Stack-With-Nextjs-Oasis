@@ -1,3 +1,4 @@
+
 import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { users } from '../route';
 
@@ -11,6 +12,7 @@ export async function GET(
     const user = users.find((u) => u.id === id);
 
     if (!user) {
+
       return sendError('User not found', 'NOT_FOUND', 404);
     }
 
