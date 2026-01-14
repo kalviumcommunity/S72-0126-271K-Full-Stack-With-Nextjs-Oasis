@@ -1,18 +1,18 @@
-
+import { NextRequest } from 'next/server';
 import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { users } from '../route';
 
-// GET /api/users/[id] - Get a single user by ID
+// GET /api/users/[id]
 export async function GET(
-  req: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number(params.id);
-    const user = users.find((u) => u.id === id);
+    const { id } = await params;
+    const userId = Number(id);
 
+    const user = users.find((u) => u.id === userId);
     if (!user) {
-
       return sendError('User not found', 'NOT_FOUND', 404);
     }
 
@@ -22,18 +22,19 @@ export async function GET(
   }
 }
 
-// PUT /api/users/[id] - Update a user
+// PUT /api/users/[id]
 export async function PUT(
-  req: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number(params.id);
-    const body = await req.json();
+    const { id } = await params;
+    const userId = Number(id);
+
+    const body = await _request.json();
     const { name, email, role } = body;
 
-    const userIndex = users.findIndex((u) => u.id === id);
-
+    const userIndex = users.findIndex((u) => u.id === userId);
     if (userIndex === -1) {
       return sendError('User not found', 'NOT_FOUND', 404);
     }
@@ -51,21 +52,21 @@ export async function PUT(
   }
 }
 
-// DELETE /api/users/[id] - Delete a user
+// DELETE /api/users/[id]
 export async function DELETE(
-  req: Request,
-  { params }: { params: { id: string } }
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = Number(params.id);
-    const userIndex = users.findIndex((u) => u.id === id);
+    const { id } = await params;
+    const userId = Number(id);
 
+    const userIndex = users.findIndex((u) => u.id === userId);
     if (userIndex === -1) {
       return sendError('User not found', 'NOT_FOUND', 404);
     }
 
     const deletedUser = users.splice(userIndex, 1)[0];
-
     return sendSuccess(deletedUser, 'User deleted successfully');
   } catch (error) {
     return sendError('Failed to delete user', 'INTERNAL_ERROR', 500, error);
