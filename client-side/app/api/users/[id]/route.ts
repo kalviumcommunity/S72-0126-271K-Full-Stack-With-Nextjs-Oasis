@@ -1,4 +1,5 @@
-import { NextResponse } from 'next/server';
+
+import { sendSuccess, sendError } from '@/lib/responseHandler';
 import { users } from '../route';
 
 // GET /api/users/[id] - Get a single user by ID
@@ -11,21 +12,13 @@ export async function GET(
     const user = users.find((u) => u.id === id);
 
     if (!user) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
+
+      return sendError('User not found', 'NOT_FOUND', 404);
     }
 
-    return NextResponse.json({
-      success: true,
-      data: user,
-    });
+    return sendSuccess(user, 'User fetched successfully');
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to fetch user' },
-      { status: 500 }
-    );
+    return sendError('Failed to fetch user', 'INTERNAL_ERROR', 500, error);
   }
 }
 
@@ -42,10 +35,7 @@ export async function PUT(
     const userIndex = users.findIndex((u) => u.id === id);
 
     if (userIndex === -1) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
+      return sendError('User not found', 'NOT_FOUND', 404);
     }
 
     users[userIndex] = {
@@ -55,15 +45,9 @@ export async function PUT(
       ...(role && { role }),
     };
 
-    return NextResponse.json({
-      success: true,
-      data: users[userIndex],
-    });
+    return sendSuccess(users[userIndex], 'User updated successfully');
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to update user' },
-      { status: 500 }
-    );
+    return sendError('Failed to update user', 'INTERNAL_ERROR', 500, error);
   }
 }
 
@@ -77,22 +61,13 @@ export async function DELETE(
     const userIndex = users.findIndex((u) => u.id === id);
 
     if (userIndex === -1) {
-      return NextResponse.json(
-        { success: false, error: 'User not found' },
-        { status: 404 }
-      );
+      return sendError('User not found', 'NOT_FOUND', 404);
     }
 
     const deletedUser = users.splice(userIndex, 1)[0];
 
-    return NextResponse.json({
-      success: true,
-      data: deletedUser,
-    });
+    return sendSuccess(deletedUser, 'User deleted successfully');
   } catch (error) {
-    return NextResponse.json(
-      { success: false, error: 'Failed to delete user' },
-      { status: 500 }
-    );
+    return sendError('Failed to delete user', 'INTERNAL_ERROR', 500, error);
   }
 }
