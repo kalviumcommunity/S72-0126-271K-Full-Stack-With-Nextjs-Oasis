@@ -1,7 +1,13 @@
 {
+  "scripts": {
+    "prisma:migrate": "prisma migrate dev --name init_schema",
+    "prisma:generate": "prisma generate",
+    "prisma:seed": "ts-node prisma/seed.ts"
+  },
   "devDependencies": {
-    "prisma": "^6.19.2",
-    "ts-node": "^10.9.2"
+    "prisma": "^7.2.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
   },
   "dependencies": {
     "@prisma/client": "^7.2.0",

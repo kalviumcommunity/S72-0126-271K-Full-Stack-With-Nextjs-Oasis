@@ -200,7 +200,7 @@ This approach ensures:
 
 ---
 
-# 🔐 Environment-Aware Builds & Secure Secrets Management
+## 🔐 Environment-Aware Builds & Secure Secrets Management
 
 ## Why Environment Segregation Is Essential in Modern Deployments
 
@@ -360,7 +360,7 @@ They provide:
 
 The ShopLite failure was not a code issue—it was a **configuration and secret isolation failure**, which our project architecture explicitly avoids.
 
-# Cloud Deployments 101: Docker → CI/CD → AWS/Azure
+## Cloud Deployments 101: Docker → CI/CD → AWS/Azure
 
 ## Understanding Cloud Deployments
 
@@ -702,6 +702,138 @@ Code push → CI build → Test → Tag image → Deploy → Stop old container 
 * Secure secrets, version images, isolate environments, and clean old containers to avoid conflicts and drift
 
 ## 🔀 Git Workflow & Contribution Guidelines
+
+---
+
+## Database Schema & Data Modeling
+
+### Core Entities
+
+- **User**: Represents a person using the platform (admin or regular user). Users can own projects, be members of teams, be assigned tasks, and write comments.
+- **Team**: Logical grouping of users working together. Teams can own multiple projects.
+- **TeamMember**: Join table that connects `User` and `Team` with an additional `role` (OWNER / ADMIN / MEMBER).
+- **Project**: A unit of work or product area (e.g., "Full Stack Next.js App") owned by a single user and optionally associated with a team.
+- **Task**: Individual actionable item under a project, assigned to a single user. Tasks can have comments.
+- **Comment**: Discussion messages attached to tasks, authored by users.
+
+### Prisma Schema (Excerpt)
+
+```12:104:server-side/prisma/schema.prisma
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            Int           @id @default(autoincrement())
+  name          String
+  email         String        @unique
+  role          UserRole      @default(USER)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  tasks         Task[]
+  projectsOwned Project[]     @relation("ProjectOwner")
+  comments      Comment[]
+  memberships   TeamMember[]
+}
+```
+
+This schema defines:
+
+- **Primary keys**: All `id` fields are primary keys via `@id @default(autoincrement())`.
+- **Foreign keys**:
+  - `Task.userId → User.id`
+  - `Task.projectId → Project.id`
+  - `Project.ownerId → User.id`
+  - `Project.teamId → Team.id`
+  - `TeamMember.teamId → Team.id`
+  - `TeamMember.userId → User.id`
+  - `Comment.taskId → Task.id`
+  - `Comment.authorId → User.id`
+- **Relations with delete behavior**:
+  - `onDelete: Cascade` on `Task.user`, `Task.project`, `Comment.task`, `Comment.author`, `TeamMember.user`, `TeamMember.team` so that child rows are cleaned up when a parent is deleted.
+  - `onDelete: SetNull` on `Project.team` so projects can outlive team deletion while dropping the `teamId`.
+
+### Constraints & Indexes
+
+- **NOT NULL**:
+  - All scalar fields without `?` (e.g., `User.email`, `Task.title`, `Project.ownerId`) are required, enforcing 1NF (no nullable core identifiers).
+- **UNIQUE**:
+  - `User.email` is unique to prevent duplicate accounts.
+  - `Team.name` is unique to avoid confusion between teams.
+  - Composite unique on `TeamMember(teamId, userId)` prevents duplicate membership rows.
+- **Indexes**:
+  - `@@index([userId])` on `Task` optimizes queries like "all tasks for a user".
+  - `@@index([projectId, completed])` on `Task` speeds up project task lists filtered by completion.
+  - `@@index([ownerId])` and `@@index([teamId])` on `Project` support dashboard views by owner or team.
+  - `@@index([taskId])` on `Comment` accelerates loading comments for a task.
+
+### Normalization & Query Patterns
+
+- **1NF**: All attributes are atomic (no arrays in columns), and each table has a primary key.
+- **2NF**: Non-key attributes depend on the whole key:
+  - In `TeamMember`, non-key columns (`role`) depend on the composite key `(teamId, userId)` (modeled via unique constraint).
+- **3NF**: No transitive dependencies:
+  - User role info is stored only in `User` (not copied to `Task` or `Comment`).
+  - Team-level details (`description`) live only in `Team`, while membership-specific details live in `TeamMember`.
+
+This structure supports common queries efficiently:
+
+- Get all tasks for a user, optionally filtered by project or completion.
+- Get all projects for a team and the members working on them.
+- Get task details with comments and authors for a project board.
+
+### Migrations & Seeding
+
+From the `server-side` directory:
+
+- **Run migrations**:
+
+  ```bash
+  npx prisma migrate dev --name init_schema
+  ```
+
+  This uses `prisma/schema.prisma` to create tables and relations in the PostgreSQL database defined by `DATABASE_URL`. Capture a screenshot of the terminal showing successful migration for submission.
+
+- **Generate Prisma Client** (usually runs automatically on migrate, but can be explicit):
+
+  ```bash
+  npx prisma generate
+  ```
+
+- **Seed data**:
+
+  ```bash
+  npx ts-node prisma/seed.ts
+  ```
+
+  The seeding script:
+
+  - Creates three users (`Alice`, `Bob`, `Charlie`) with appropriate roles.
+  - Creates one team and links the users via `TeamMember` with OWNER/MEMBER roles.
+  - Creates a project owned by Alice and associated with the team.
+  - Creates three tasks assigned to users and linked to the project.
+  - Adds comments on tasks to verify the `Comment` relationships.
+
+  Take a screenshot of the terminal output (`Database seeded successfully ✅`) as evidence of successful seeding.
+
+### Reflection & Challenges
+
+- **Design choices**:
+  - Introduced join table `TeamMember` to correctly model the many-to-many `User ↔ Team` relationship without duplicating data.
+  - Used enums (`UserRole`, `TeamRole`, `ProjectStatus`) instead of free-form strings to improve data integrity and avoid magic strings in queries.
+  - Chose `onDelete: Cascade` for most child relations to keep data clean, and `onDelete: SetNull` where historical records should survive parent deletion.
+- **Potential challenges**:
+  - Ensuring relationships are correctly directional (e.g., `Project.owner` vs `Task.assignee`) to avoid cyclic or ambiguous relations.
+  - Aligning the schema with frontend expectations (mock users/tasks) so that future API routes can be backed by this database without major changes.
+- **Future improvements**:
+  - Add soft-delete flags instead of hard deletes for auditability.
+  - Introduce additional indexes once query patterns from production are known (e.g., by `dueDate` or `status` for reporting).
+
 
 ### Branch Naming Convention
 We follow a structured branch naming strategy:
