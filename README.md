@@ -925,3 +925,168 @@ This workflow ensures:
 - Clean Git history
 - Faster and safer collaboration
 - Production stability for OASIS
+
+---
+
+## Error Handling Middleware
+
+### Why Centralized Error Handling Matters
+
+Modern web apps can fail in many ways — from API timeouts to database issues. Without a centralized strategy, errors become scattered, logs inconsistent, and debugging difficult.
+
+A centralized error handler ensures:
+
+- **Consistency**: Every error follows a uniform response format.
+- **Security**: Sensitive stack traces are hidden in production.
+- **Observability**: Structured logs make debugging and monitoring easier.
+
+| Environment | Behavior |
+|------------|----------|
+| Development | Show detailed error messages and stack traces. |
+| Production | Log detailed errors internally, but send minimal, user-safe messages. |
+
+### Project Structure for Error Handling
+
+```
+app/
+ ├── api/
+ │    ├── users/
+ │    │    ├── route.ts
+ ├── lib/
+ │    ├── logger.ts
+ │    ├── errorHandler.ts
+```
+
+### Implementation
+
+#### Logger Utility (lib/logger.ts)
+
+We use structured logging to keep error data readable and traceable:
+
+```typescript
+export const logger = {
+  info: (message: string, meta?: any) => {
+    console.log(JSON.stringify({ level: "info", message, meta, timestamp: new Date() }));
+  },
+  error: (message: string, meta?: any) => {
+    console.error(JSON.stringify({ level: "error", message, meta, timestamp: new Date() }));
+  },
+};
+```
+
+#### Centralized Error Handler (lib/errorHandler.ts)
+
+The error handler classifies and formats errors based on type and environment:
+
+```typescript
+import { NextResponse } from "next/server";
+import { logger } from "./logger";
+
+export function handleError(error: any, context: string) {
+  const isProd = process.env.NODE_ENV === "production";
+
+  const errorResponse = {
+    success: false,
+    message: isProd
+      ? "Something went wrong. Please try again later."
+      : error.message || "Unknown error",
+    ...(isProd ? {} : { stack: error.stack }),
+  };
+
+  logger.error(`Error in ${context}`, {
+    message: error.message,
+    stack: isProd ? "REDACTED" : error.stack,
+  });
+
+  return NextResponse.json(errorResponse, { status: 500 });
+}
+```
+
+**Key Idea**: Errors are logged with full details, but stack traces are hidden from the user in production for security.
+
+#### Using the Error Handler in Routes (app/api/users/route.ts)
+
+```typescript
+import { NextResponse } from "next/server";
+import { handleError } from "@/lib/errorHandler";
+
+export async function GET() {
+  try {
+    // Simulate database or API failure
+    throw new Error("Database connection failed!");
+  } catch (error) {
+    return handleError(error, "GET /api/users");
+  }
+}
+```
+
+### Testing in Development vs Production
+
+#### Development Mode
+
+Request:
+```bash
+curl -X GET http://localhost:3000/api/users
+```
+
+Response:
+```json
+{
+  "success": false,
+  "message": "Database connection failed!",
+  "stack": "Error: Database connection failed! at ..."
+}
+```
+
+#### Production Mode (NODE_ENV=production)
+
+Response:
+```json
+{
+  "success": false,
+  "message": "Something went wrong. Please try again later."
+}
+```
+
+Log (Console or CloudWatch):
+```json
+{
+  "level": "error",
+  "message": "Error in GET /api/users",
+  "meta": {
+    "message": "Database connection failed!",
+    "stack": "REDACTED"
+  },
+  "timestamp": "2025-10-29T16:45:00Z"
+}
+```
+
+### Reflection
+
+**How structured logs aid debugging**:
+- Structured JSON logs are machine-readable and easily searchable
+- Consistent format across all errors makes pattern recognition simple
+- Contextual information (timestamp, error location) helps trace issues quickly
+- Can be integrated with log aggregation tools like CloudWatch, Splunk, or Datadog
+
+**Why redacting sensitive data builds user trust**:
+- Stack traces can expose internal system architecture and file paths
+- Error details may contain sensitive database queries or API keys
+- Users don't need technical details; they need reassurance
+- Clean error messages prevent information leakage to potential attackers
+
+**How to extend the handler for custom error types**:
+- Create custom error classes (e.g., `ValidationError`, `AuthError`, `DatabaseError`)
+- Add type-specific handling in the error handler:
+  ```typescript
+  if (error instanceof ValidationError) {
+    return NextResponse.json({ success: false, message: error.message }, { status: 400 });
+  }
+  if (error instanceof AuthError) {
+    return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
+  }
+  ```
+- Map error types to appropriate HTTP status codes
+- Include error codes for client-side error categorization
+
+**Pro Tip**: "A professional app doesn't just run smoothly — it fails gracefully. Good error handling isn't about hiding errors; it's about handling them intelligently."

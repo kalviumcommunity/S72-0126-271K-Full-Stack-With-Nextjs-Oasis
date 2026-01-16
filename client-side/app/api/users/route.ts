@@ -1,4 +1,5 @@
 import { sendSuccess, sendError } from '@/lib/responseHandler';
+import { handleError } from '@/lib/errorHandler';
 
 // Mock database
 export let users = [
@@ -43,7 +44,7 @@ export async function GET(req: Request) {
       'Users fetched successfully'
     );
   } catch (error) {
-    return sendError('Failed to fetch users', 'INTERNAL_ERROR', 500, error);
+    return handleError(error, "GET /api/users");
   }
 }
 
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
 
     return sendSuccess(newUser, 'User created successfully', 201);
   } catch (error) {
-    return sendError('Failed to create user', 'INTERNAL_ERROR', 500, error);
+    return handleError(error, "POST /api/users");
   }
 }
 
@@ -103,7 +104,7 @@ export async function PUT(req: Request) {
 
     return sendSuccess(users[userIndex], 'User updated successfully');
   } catch (error) {
-    return sendError('Failed to update user', 'INTERNAL_ERROR', 500, error);
+    return handleError(error, "PUT /api/users");
   }
 }
 
@@ -127,6 +128,6 @@ export async function DELETE(req: Request) {
 
     return sendSuccess(deletedUser, 'User deleted successfully');
   } catch (error) {
-    return sendError('Failed to delete user', 'INTERNAL_ERROR', 500, error);
+    return handleError(error, "DELETE /api/users");
   }
 }
