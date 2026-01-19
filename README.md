@@ -1090,3 +1090,387 @@ Log (Console or CloudWatch):
 - Include error codes for client-side error categorization
 
 **Pro Tip**: "A professional app doesn't just run smoothly — it fails gracefully. Good error handling isn't about hiding errors; it's about handling them intelligently."
+---
+
+## Transactional Email Service Integration
+
+### Overview
+
+**OASIS** implements a robust transactional email service using **SendGrid** to send automated notifications for critical user events. Unlike marketing emails, transactional emails are trigger-based and automatically sent by the backend when important actions occur.
+
+### Why Transactional Emails Matter
+
+Transactional emails are essential for:
+- **User Engagement**: Keep users informed about their account activity
+- **Trust Building**: Professional, timely communications build credibility
+- **Security**: Alert users about important account changes
+- **User Experience**: Automate confirmations and notifications
+
+### Event-to-Email Mapping
+
+| User Event | Email Type | Template Used |
+|------------|-----------|---------------|
+| New user registration | Welcome email | `welcomeTemplate()` |
+| Password reset request | Reset link with expiry | `passwordResetTemplate()` |
+| Email verification | Verification link | `emailVerificationTemplate()` |
+| Payment success | Invoice confirmation | `paymentConfirmationTemplate()` |
+| Security alert | Account notification | `accountAlertTemplate()` |
+| Activity notification | Update notification | `activityNotificationTemplate()` |
+
+---
+
+### Provider Selection: SendGrid
+
+We chose **SendGrid** over AWS SES for the following reasons:
+
+#### SendGrid vs AWS SES Comparison
+
+| Feature | SendGrid | AWS SES |
+|---------|----------|---------|
+| **Pricing** | Free tier: 100 emails/day | Pay-per-email ($0.10/1000) |
+| **Setup Complexity** | Simple API key setup | Requires AWS credentials, IAM roles |
+| **Email Verification** | Single sender verification | Domain verification required |
+| **Development Speed** | Quick integration | More configuration steps |
+| **Dashboard** | User-friendly analytics | Integrated with CloudWatch |
+| **Deliverability** | Excellent reputation | Excellent reputation |
+| **Best For** | Rapid development, startups | Enterprise, AWS-integrated apps |
+
+**Our Choice**: **SendGrid** for rapid development and ease of setup, with the free tier sufficient for our current user base.
+
+---
+
+### Implementation Architecture
+
+#### 1. API Endpoint: /api/email
+
+The email service is exposed through a POST endpoint that accepts:
+- `to`: Recipient email address (validated)
+- `subject`: Email subject line
+- `message`: HTML content
+
+**Key Features**:
+- ✅ Email format validation
+- ✅ Environment variable validation
+- ✅ Comprehensive error handling
+- ✅ Detailed logging with message IDs
+- ✅ SendGrid-specific error parsing
+
+**Location**: client-side/app/api/email/route.ts
+
+#### 2. Email Templates
+
+We've created six reusable, professionally-styled HTML email templates:
+
+1. **Welcome Email** - Onboarding new users
+2. **Password Reset** - Secure password recovery with expiring tokens
+3. **Email Verification** - Confirm email ownership
+4. **Payment Confirmation** - Transaction receipts
+5. **Account Alert** - Security notifications
+6. **Activity Notification** - General user activity updates
+
+**Template Features**:
+- Responsive HTML design
+- Consistent branding with gradient headers
+- Proper HTML structure with inline CSS
+- Mobile-friendly layout
+- Professional footer with unsubscribe links
+
+**Location**: client-side/lib/emailTemplates.ts
+
+---
+
+### Setup Instructions
+
+#### Step 1: Create SendGrid Account
+
+1. Sign up at [sendgrid.com](https://sendgrid.com)
+2. Navigate to **Settings → Sender Authentication**
+3. Verify your sender email address
+4. Generate an API Key under **Settings → API Keys**
+   - Select "Full Access" permissions
+   - Save the API key securely
+
+#### Step 2: Configure Environment Variables
+
+Create a .env.local file in the client-side directory:
+
+```bash
+# SendGrid Configuration
+SENDGRID_API_KEY=SG.your-actual-api-key-here
+SENDGRID_SENDER=no-reply@yourdomain.com
+
+# Application URL (for email links)
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+```
+
+**Important**: 
+- Never commit .env.local to version control
+- Use .env.example as a template for team members
+- In production, use environment variables from your hosting platform
+
+#### Step 3: Install Dependencies
+
+```bash
+cd client-side
+npm install @sendgrid/mail
+```
+
+---
+
+### Usage Examples
+
+#### Example 1: Send Welcome Email
+
+```typescript
+import { welcomeTemplate } from '@/lib/emailTemplates';
+
+const response = await fetch('/api/email', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    to: 'newuser@example.com',
+    subject: 'Welcome to Kalvium!',
+    message: welcomeTemplate('John Doe')
+  })
+});
+
+const result = await response.json();
+console.log(result); // { success: true, messageId: "...", statusCode: 202 }
+```
+
+#### Example 2: Send Password Reset
+
+```typescript
+import { passwordResetTemplate } from '@/lib/emailTemplates';
+
+const resetToken = generateSecureToken();
+const response = await fetch('/api/email', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    to: 'user@example.com',
+    subject: 'Reset Your Password',
+    message: passwordResetTemplate('Jane Smith', resetToken, 60)
+  })
+});
+```
+
+#### Example 3: Test via cURL
+
+```bash
+curl -X POST http://localhost:3000/api/email \
+  -H "Content-Type: application/json" \
+  -d '{
+    "to": "student@example.com",
+    "subject": "Test Email from Kalvium",
+    "message": "<h2>Hello from OASIS! 🚀</h2><p>This is a test email.</p>"
+  }'
+```
+
+**Expected Response**:
+```json
+{
+  "success": true,
+  "messageId": "01010189b2example123",
+  "statusCode": 202
+}
+```
+
+---
+
+### Testing and Verification
+
+#### Test Cases Performed
+
+1. ✅ **Valid Email Send**: Successfully sent email with proper credentials
+2. ✅ **Invalid Email Format**: Returns 400 error with validation message
+3. ✅ **Missing Fields**: Returns 400 error specifying missing fields
+4. ✅ **Invalid API Key**: Returns 401 error from SendGrid
+5. ✅ **Network Failure**: Handles timeout and connection errors gracefully
+
+#### Sandbox vs Production Mode
+
+**SendGrid Sandbox Mode**:
+- Available in free tier accounts
+- Emails are "sent" but not actually delivered
+- Used for testing API integration
+- No email deliverability verification needed
+
+**Production Mode**:
+- Requires sender domain verification (SPF, DKIM)
+- Real email delivery
+- Better reputation management
+- Access to full analytics
+
+**Our Setup**: Currently using **verified sender email** in production mode for actual delivery to users.
+
+---
+
+### Common Issues and Solutions
+
+#### Issue 1: Emails Not Delivered
+
+**Symptoms**: API returns success but emails don't arrive
+
+**Solutions**:
+- Check spam/junk folder
+- Verify sender email in SendGrid dashboard
+- Ensure recipient email is valid
+- Check SendGrid activity dashboard for bounce/block status
+- In sandbox mode, emails won't actually deliver
+
+#### Issue 2: 401 Unauthorized Error
+
+**Symptoms**: API returns unauthorized error
+
+**Solutions**:
+- Verify SENDGRID_API_KEY is correct in .env.local
+- Ensure API key has "Full Access" permissions
+- Check for extra spaces or quotes in environment variable
+- Regenerate API key if compromised
+
+#### Issue 3: Rate Limit Exceeded
+
+**Symptoms**: 429 Too Many Requests error
+
+**Solutions**:
+- Free tier: 100 emails/day limit
+- Implement exponential backoff retry logic
+- Use a queue system (e.g., Bull, Redis Queue) for high volumes
+- Consider upgrading to paid plan for higher limits
+
+#### Issue 4: Slow Email Sends
+
+**Symptoms**: API takes >3 seconds to respond
+
+**Solutions**:
+- Move email sending to background jobs
+- Use message queues (e.g., AWS SQS, RabbitMQ)
+- Implement fire-and-forget pattern for non-critical emails
+- Cache template generation
+
+---
+
+### Advanced Considerations
+
+#### 1. Rate Limiting and Throttling
+
+**Current Limits** (SendGrid Free Tier):
+- 100 emails per day
+- No burst rate limit
+
+**Scaling Strategies**:
+- Implement request queuing with Redis or Bull
+- Add exponential backoff for failed sends
+- Monitor daily usage and alert near limits
+- Batch non-urgent emails
+
+#### 2. Bounce Handling
+
+**Types of Bounces**:
+- **Hard Bounce**: Permanent failure (invalid email, domain doesn't exist)
+- **Soft Bounce**: Temporary failure (mailbox full, server down)
+- **Spam Complaint**: User marked email as spam
+
+**Handling Strategy**:
+1. Monitor SendGrid dashboard for bounce rates
+2. Automatically suppress hard bounced emails
+3. Retry soft bounces after delay
+4. Remove spam complainers from list immediately
+5. Maintain bounce rate < 5% for good sender reputation
+
+#### 3. Sender Authentication (SPF/DKIM)
+
+**Why It Matters**:
+- Prevents emails from going to spam
+- Proves email authenticity
+- Builds sender reputation
+- Required for production domains
+
+**Setup Steps**:
+1. Add SPF record to DNS: v=spf1 include:sendgrid.net ~all
+2. Add DKIM records provided by SendGrid
+3. Verify domain in SendGrid dashboard
+4. Monitor authentication status
+
+**Current Status**: Using verified single sender email (sufficient for development and early production).
+
+#### 4. Email Analytics
+
+**Metrics to Track**:
+- Delivery rate: % of emails successfully delivered
+- Open rate: % of recipients who opened the email
+- Click-through rate: % who clicked links
+- Bounce rate: % of failed deliveries
+- Spam complaint rate: % marked as spam
+
+**SendGrid Dashboard**: Provides real-time analytics for all metrics.
+
+---
+
+### Security Best Practices
+
+1. **Environment Variables**:
+   - Never hardcode API keys
+   - Use .env.local for local development
+   - Use platform environment variables in production
+
+2. **Rate Limiting**:
+   - Implement API rate limiting to prevent abuse
+   - Add CAPTCHA for user-facing email triggers
+
+3. **Input Validation**:
+   - Validate email format on frontend and backend
+   - Sanitize HTML content to prevent XSS
+   - Limit email size to prevent abuse
+
+4. **Monitoring**:
+   - Log all email sends with metadata
+   - Alert on unusual sending patterns
+   - Monitor bounce and spam rates
+
+---
+
+### Reflection and Learning Outcomes
+
+#### What We Learned
+
+1. **Provider Selection Matters**: SendGrid's ease of setup significantly reduced development time compared to AWS SES's more complex configuration.
+
+2. **Template Reusability**: Creating a library of email templates ensures consistent branding and reduces duplication. HTML email design requires inline CSS and careful testing across email clients.
+
+3. **Error Handling is Critical**: Email services can fail for many reasons (network issues, invalid recipients, rate limits). Comprehensive error handling and logging are essential for debugging.
+
+4. **Sandbox vs Production**: Understanding the difference saved confusion during testing. Sandbox mode is perfect for integration testing without worrying about deliverability.
+
+5. **Asynchronous Processing**: For production apps, email sending should be asynchronous to avoid blocking user requests. Background job queues are essential for scalability.
+
+#### Production Readiness Checklist
+
+- ✅ SendGrid account created and sender verified
+- ✅ Environment variables configured
+- ✅ Email API endpoint implemented with validation
+- ✅ Six reusable email templates created
+- ✅ Error handling and logging in place
+- ✅ Tested successfully with real email delivery
+- ⚠️ **TODO**: Implement background job queue for high volumes
+- ⚠️ **TODO**: Set up domain authentication (SPF/DKIM)
+- ⚠️ **TODO**: Configure SendGrid webhooks for bounce handling
+- ⚠️ **TODO**: Add email rate limiting middleware
+
+#### Future Enhancements
+
+1. **Email Personalization**: Use user preferences and behavior to customize email content
+2. **A/B Testing**: Test different subject lines and content for better engagement
+3. **Scheduled Emails**: Implement delayed sending for optimal delivery times
+4. **Multi-language Support**: Translate templates based on user locale
+5. **Email Preview**: Add endpoint to preview emails before sending
+
+---
+
+### Conclusion
+
+The transactional email service is now fully integrated into OASIS, providing automated, professional communication with users. The SendGrid implementation offers a balance of simplicity, reliability, and cost-effectiveness for our current scale, with clear paths for scaling as user volume grows.
+
+**Key Takeaway**: "Professional email communication isn't just about sending messages — it's about building trust through timely, relevant, and well-designed notifications that enhance the user experience."
+
