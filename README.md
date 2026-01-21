@@ -2274,4 +2274,28 @@ npm run cache:demo
 ```
 *Note: Ensure Redis is reachable at `127.0.0.1:6379`.*
 
+## File Uploads (AWS S3)
+
+We use **AWS S3 Pre-Signed URLs** for secure, direct-to-bucket uploads.
+
+### Helper
+Located in `server-side/src/lib/storage.ts`:
+- `generateUploadUrl(key, contentType)`: returns a short-lived URL for PUT requests.
+
+### Configuration
+Environment variables required:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `AWS_BUCKET_NAME`
+
+### Running the Upload Demo
+Simulates the flow (Generating URL -> Client Upload -> DB Save).
+
+```bash
+cd server-side
+npm run upload:demo
+```
+*Note: Without real credentials, the S3 interaction is mocked or will fail gracefully.*
+
 
