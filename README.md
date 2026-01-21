@@ -2323,4 +2323,19 @@ The `LayoutWrapper` in `app/layout.tsx` ensures that the `Header` and `Sidebar` 
 ### Dashboard
 Visit `/dashboard` to see the shared layout and UI components in action.
 
+## Client-side Data Fetching (SWR)
+
+We use **SWR (Stale-While-Revalidate)** for efficient client-side data fetching.
+
+### Benefits over `useEffect` + `fetch`
+- **Automatic Caching**: Instant navigation between pages.
+- **Revalidation**: Updates data when window is refocused or network reconnects.
+- **Optimistic UI**: Mutate local data immediately while server updates in background.
+
+### Usage
+- `client-side/hooks/usePosts.ts`: Example hook wrapping SWR.
+- `client-side/app/swr-demo/page.tsx`: Demo page showing caching and mutation.
+
+**Try it out**: Visit `/swr-demo` and try adding a post!
+
 
