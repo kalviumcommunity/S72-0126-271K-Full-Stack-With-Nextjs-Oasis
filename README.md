@@ -2169,4 +2169,47 @@ npm run prisma:demo
 ```
 *Note: This script requires a running database connection.*
 
+## Input Validation with Zod
+
+We use **Zod** for schema validation to ensure data integrity before it reaches the database. This provides a type-safe way to validate API requests.
+
+### Why Zod?
+
+*   **Type Safety**: Zod schemas automatically infer TypeScript types.
+*   **Runtime Validation**: catches invalid data before it touches the DB.
+*   **User-Friendly Errors**: Provides clear messages (e.g., "Email is invalid").
+
+### Usage
+
+1.  **Define Schemas**: Located in `server-side/src/schemas`.
+2.  **Validate**: Use `schema.parseAsync(data)` or helper functions.
+
+### Running the Validation Demo
+
+We created a demo script to showcase Zod validation in action (success and failure cases).
+
+```bash
+cd server-side
+npm run validation:demo
+```
+
+### Example Code
+
+```typescript
+import { z } from 'zod';
+
+export const createUserSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+});
+
+// Usage
+try {
+  const data = createUserSchema.parse(input);
+  // data is now typed and safe
+} catch (err) {
+  // handle validation error
+}
+```
+
 
