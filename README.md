@@ -2111,3 +2111,62 @@ Global state management with Context API provides a clean, maintainable solution
 
 **Key Takeaway**: "Context API + Custom Hooks is the sweet spot for global state management in React applications. It eliminates prop drilling while keeping the code simple, maintainable, and performant."
 
+---
+
+## Prisma Performance & Transactions
+
+### 1. Transaction Scenarios & Atomicity
+We use **Prisma Transactions** (`prisma.$transaction`) to ensure data integrity when multiple related operations must succeed or fail together.
+
+**Scenario**: Creating a `Team` and adding the creator as the first `TeamMember`.
+- **Logic**:
+  1. Create `User` (if not exists).
+  2. Create `Team`.
+  3. Create `TeamMember` linking `User` and `Team`.
+- **Atomicity**: If step 3 fails, the entire transaction rolls back, preventing "orphan" teams with no members.
+
+**Implementation Example**:
+```typescript
+await prisma.$transaction(async (tx) => {
+  const team = await tx.team.create({ ... });
+  await tx.teamMember.create({ data: { teamId: team.id, ... } });
+});
+```
+
+### 2. Rollback Verification
+We simulate failures to verify rollback behavior.
+- In `server-side/src/transaction-demo.ts`, the `runRollback()` function intentionally throws an error inside a transaction.
+- **Result**: The database remains unchanged (no partial data written), confirming atomicity.
+
+### 3. Database Indexes for Performance
+We added specific indexes to `schema.prisma` to optimize frequent query patterns:
+- **`@@index([status])` on Project**: Optimizes filtering projects by status (e.g., "Active" vs "Archived").
+- **`@@index([userId])` on Task**: speeds up fetching a user's task list.
+- **`@@index([teamId])` on Project**: Speeds up retrieving all projects for a specific team.
+
+To apply these changes:
+```bash
+npx prisma migrate dev --name add_indexes
+```
+
+### 4. Query Optimization Strategy
+We optimize Prisma queries to prevent N+1 issues and over-fetching:
+- **Field Selection**: Using `select: { id: true, name: true }` instead of fetching the entire object reduces payload size.
+- **Batch Operations**: Using `createMany` for bulk inserts reduces round-trips to the database.
+- **Pagination**: Using `skip` and `take` prevents loading thousands of rows at once.
+
+### 5. Running the Performance Demo
+A demonstration script is included to showcase transactions, rollbacks, and query optimizations.
+
+**Pre-requisites**:
+- Docker containers must be running (`docker compose up -d`).
+- `server-side` dependencies installed (`npm install`).
+
+**Run the Demo**:
+```bash
+cd server-side
+npm run prisma:demo
+```
+*Note: This script requires a running database connection.*
+
+
