@@ -2338,4 +2338,19 @@ We use **SWR (Stale-While-Revalidate)** for efficient client-side data fetching.
 
 **Try it out**: Visit `/swr-demo` and try adding a post!
 
+## Form Handling & Validation
+
+We use **React Hook Form** combined with **Zod** for performant, schema-based validation.
+
+### Benefits
+- **Performance**: Uncontrolled inputs minimize re-renders.
+- **Type Safety**: Zod schemas infer TypeScript types automatically.
+- **Reusability**: `FormInput` component handles error display logic.
+
+### Usage
+- `client-side/components/ui/FormInput.tsx`: Reusable wrapper for standard HTML inputs.
+- `client-side/app/form-demo/page.tsx`: Example complex form with validation rules.
+
+**Try it out**: Visit `/form-demo` to see validation in action.
+
 
