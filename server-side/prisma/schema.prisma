@@ -1,6 +1,5 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 generator client {
@@ -80,6 +79,7 @@ model Project {
 
   @@index([ownerId])
   @@index([teamId])
+  @@index([status])
 }
 
 model Task {
