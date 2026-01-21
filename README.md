@@ -2293,9 +2293,34 @@ Environment variables required:
 Simulates the flow (Generating URL -> Client Upload -> DB Save).
 
 ```bash
-cd server-side
+# Verify implementation
 npm run upload:demo
 ```
 *Note: Without real credentials, the S3 interaction is mocked or will fail gracefully.*
+
+## Frontend Architecture
+
+We use a modular component-based architecture for the Next.js frontend.
+
+### Directory Structure
+```
+client-side/app/          # Next.js App Router pages
+client-side/components/
+ ├── layout/              # Shared layout components
+ │    ├── Header.tsx      # Top navigation
+ │    ├── Sidebar.tsx     # Side navigation
+ │    └── LayoutWrapper.tsx # Wraps content with Header & Sidebar
+ ├── ui/                  # Reusable UI elements
+ │    ├── Button.tsx
+ │    ├── Card.tsx
+ │    └── InputField.tsx
+ └── index.ts             # Barrel exports
+```
+
+### Layout
+The `LayoutWrapper` in `app/layout.tsx` ensures that the `Header` and `Sidebar` are consistently applied to all pages.
+
+### Dashboard
+Visit `/dashboard` to see the shared layout and UI components in action.
 
 
