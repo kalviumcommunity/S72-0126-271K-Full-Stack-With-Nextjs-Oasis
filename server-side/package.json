@@ -4,7 +4,8 @@
     "prisma:generate": "prisma generate",
     "prisma:seed:manual": "ts-node prisma/seed.ts",
     "prisma:demo": "ts-node -T src/transaction-demo.ts",
-    "validation:demo": "ts-node -T src/validation-demo.ts"
+    "validation:demo": "ts-node -T src/validation-demo.ts",
+    "auth:demo": "ts-node -T src/auth-demo.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"

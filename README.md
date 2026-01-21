@@ -2212,4 +2212,33 @@ try {
 }
 ```
 
+## Authorization Middleware (Role-Based Access)
+
+We implemented a flexible authorization system to restrict access to sensitive resources based on `UserRole` (ADMIN, USER).
+
+### How it Works
+
+1.  **Middleware Factory**: `requireRole(allowedRoles)` creates a validation function.
+2.  **Context**: Checks the `user.role` from the request context.
+3.  **Protection**: Throws `AuthorizationError` if the role is insufficient.
+
+### Running the Auth Demo
+
+```bash
+cd server-side
+npm run auth:demo
+```
+
+### Example Usage
+
+```typescript
+import { requireRole } from './middleware/authorize';
+import { UserRole } from '@prisma/client';
+
+const adminOnlyHandler = {
+  authorize: requireRole([UserRole.ADMIN]),
+  execute: async () => { /* ... */ }
+};
+```
+
 
