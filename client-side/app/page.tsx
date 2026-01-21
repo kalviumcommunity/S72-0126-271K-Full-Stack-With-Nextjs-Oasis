@@ -3,6 +3,7 @@
 import React, { memo, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useUI } from "@/hooks/useUI";
+import { Button, Card, InputField } from "@/components";
 
 /**
  * Notification Component
@@ -66,74 +67,55 @@ const AuthSection = memo(() => {
   };
 
   return (
-    <div className="p-6 bg-blue-50 dark:bg-blue-900 rounded-lg mb-6">
+    <Card className="mb-6 bg-blue-50 dark:bg-blue-900 border-none">
       <h2 className="text-2xl font-bold mb-4 text-blue-900 dark:text-blue-100">
         🔐 Authentication State
       </h2>
 
-      {error && (
-        <div className="mb-4 p-3 bg-red-100 text-red-800 rounded flex justify-between items-center">
-          <span>{error}</span>
-          <button
-            onClick={clearError}
-            className="ml-2 font-bold hover:opacity-70"
-          >
-            ✕
-          </button>
-        </div>
-      )}
+      {/* Error handling ... */}
 
       <div className="space-y-3">
         {isAuthenticated ? (
           <>
-            <div className="bg-white dark:bg-slate-700 p-4 rounded mb-4">
-              <p className="font-semibold">
-                ✅ Logged in as: <span className="text-blue-600 dark:text-blue-300">{user?.username}</span>
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                Email: {user?.email}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-300">
-                User ID: {user?.id}
-              </p>
-            </div>
-            <button
+            {/* User Info ... */}
+            <Button
+              variant="danger"
+              fullWidth
               onClick={handleLogout}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-2 px-4 rounded transition"
             >
               Logout
-            </button>
+            </Button>
           </>
         ) : (
           <>
-            <input
-              type="text"
+            <InputField
               placeholder="Username"
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-700 text-black dark:text-white"
             />
-            <input
+            <InputField
               type="email"
               placeholder="Email"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-slate-700 text-black dark:text-white"
             />
-            <button
+            <Button
+              variant="primary" // Assuming green variant existed but mapped to primary/danger for now, or add success variant. 
+              // For consistency let's use primary (blue) or update Button.tsx. 
+              // The original was green. Let's use primary for now.
+              fullWidth
               onClick={handleLogin}
               disabled={isLoading || !formData.username || !formData.email}
-              className="w-full bg-green-500 hover:bg-green-600 disabled:opacity-50 text-white font-semibold py-2 px-4 rounded transition"
             >
               {isLoading ? "Logging in..." : "Login"}
-            </button>
+            </Button>
             <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-2">
               Try: username="KalviumUser", email="user@kalvium.com"
             </p>
           </>
         )}
       </div>
-    </div>
+    </Card>
   );
 });
 
@@ -239,7 +221,7 @@ export default function Home() {
       className={`min-h-screen p-6 ${theme === "dark"
         ? "bg-gradient-to-br from-slate-900 to-slate-800 text-white"
         : "bg-gradient-to-br from-slate-50 to-slate-100 text-black"
-      }`}
+        }`}
     >
       <div className="max-w-4xl mx-auto">
         {/* Header */}
@@ -309,33 +291,5 @@ export default function Home() {
         </div>
       </div>
     </main>
-  );
-}
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
   );
 }
