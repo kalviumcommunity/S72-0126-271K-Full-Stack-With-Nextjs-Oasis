@@ -2241,4 +2241,37 @@ const adminOnlyHandler = {
 };
 ```
 
+## Caching Layer (Redis)
+
+We implemented a **Cache-Aside** strategy using Redis to improve performance for expensive operations.
+
+### Configuration
+
+*   **Helper**: `server-side/src/lib/redis.ts` handles the connection.
+*   **Env Vars**: `REDIS_HOST` (default: 127.0.0.1) and `REDIS_PORT` (default: 6379).
+*   **Dependencies**: Requires a running Redis instance (e.g., via Docker).
+
+### Usage
+
+Use the `getOrSetCache` helper to wrap expensive calls.
+
+```typescript
+import { getOrSetCache } from './lib/redis';
+
+const data = await getOrSetCache('my-unique-key', async () => {
+  // Expensive DB call
+  return await db.query(...);
+}, 60); // TTL in seconds
+```
+
+### Running the Cache Demo
+
+To verify caching behavior (Hits vs Misses):
+
+```bash
+cd server-side
+npm run cache:demo
+```
+*Note: Ensure Redis is reachable at `127.0.0.1:6379`.*
+
 
