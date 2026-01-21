@@ -5,7 +5,8 @@
     "prisma:seed:manual": "ts-node prisma/seed.ts",
     "prisma:demo": "ts-node -T src/transaction-demo.ts",
     "validation:demo": "ts-node -T src/validation-demo.ts",
-    "auth:demo": "ts-node -T src/auth-demo.ts"
+    "auth:demo": "ts-node -T src/auth-demo.ts",
+    "cache:demo": "ts-node -T src/cache-demo.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -18,6 +19,7 @@
   "dependencies": {
     "@prisma/client": "^7.2.0",
     "dotenv": "^17.2.3",
+    "ioredis": "^5.9.2",
     "zod": "^4.3.5"
   }
 }
