@@ -17,14 +17,20 @@ export async function POST(req: Request) {
     if (!isPasswordValid)
       return NextResponse.json({ success: false, message: "Invalid credentials" }, { status: 401 });
 
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "1h" });
+    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
 
     return NextResponse.json({
       success: true,
       message: "Login successful",
       token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
     });
   } catch (error) {
+    console.error("Login error:", error);
     return NextResponse.json({ success: false, message: "Login failed", error }, { status: 500 });
   }
 }
