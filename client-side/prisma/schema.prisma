@@ -32,10 +32,10 @@ model User {
   updatedAt    DateTime      @updatedAt
 
   // Relationships
-  tasks        Task[]
+  tasks         Task[]
   projectsOwned Project[]    @relation("ProjectOwner")
-  comments     Comment[]
-  memberships  TeamMember[]
+  comments      Comment[]
+  memberships   TeamMember[]
 }
 
 model Team {
@@ -80,7 +80,6 @@ model Project {
 
   @@index([ownerId])
   @@index([teamId])
-  @@index([status])
 }
 
 model Task {

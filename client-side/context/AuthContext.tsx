@@ -1,16 +1,18 @@
 "use client";
 
-import { createContext, useState, useContext, ReactNode, useCallback } from "react";
+import { createContext, useState, useContext, ReactNode, useCallback, useEffect } from "react";
 
 /**
  * AuthContext Type Definition
  * Defines the shape of authentication state and methods
  */
 export interface AuthContextType {
-  user: { id: string; username: string; email: string } | null;
+  user: { id: string; name: string; email: string } | null;
   isLoading: boolean;
   error: string | null;
-  login: (username: string, email: string) => Promise<void>;
+  token: string | null;
+  login: (email: string, password: string) => Promise<void>;
+  signup: (name: string, email: string, password: string) => Promise<void>;
   logout: () => void;
   clearError: () => void;
 }
@@ -29,58 +31,122 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
  */
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthContextType["user"]>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Initialize auth state from localStorage on mount
+  useEffect(() => {
+    const storedToken = localStorage.getItem("authToken");
+    const storedUser = localStorage.getItem("authUser");
+    
+    if (storedToken && storedUser) {
+      setToken(storedToken);
+      setUser(JSON.parse(storedUser));
+    }
+  }, []);
+
   /**
    * Login handler
-   * Simulates authentication and sets user state
-   * In production, this would call an API
+   * Calls backend API to authenticate user
    */
-  const login = useCallback(async (username: string, email: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // Simulate API call delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      // Validation
-      if (!username || !email) {
-        throw new Error("Username and email are required");
-      }
-
-      if (!email.includes("@")) {
-        throw new Error("Invalid email format");
-      }
-
-      // Set user state
-      setUser({
-        id: Math.random().toString(36).substr(2, 9),
-        username,
-        email,
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      console.log(`✅ User logged in: ${username} (${email})`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Login failed");
+      }
+
+      const { token, user: userData } = data;
+
+      // Store token and user in localStorage
+      localStorage.setItem("authToken", token);
+      
+      // Create user object from response
+      const userObj = {
+        id: userData.id.toString(),
+        name: userData.name,
+        email: userData.email,
+      };
+      
+      localStorage.setItem("authUser", JSON.stringify(userObj));
+      
+      setToken(token);
+      setUser(userObj);
+      
+      console.log(`✅ User logged in: ${email}`);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Login failed";
       setError(errorMessage);
       console.error(`❌ Login error: ${errorMessage}`);
+      throw err;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
   /**
+   * Signup handler
+   * Calls backend API to register new user
+   */
+  const signup = useCallback(async (name: string, email: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Signup failed");
+      }
+
+      console.log(`✅ User signed up: ${email}`);
+      
+      // Auto-login after signup
+      await login(email, password);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : "Signup failed";
+      setError(errorMessage);
+      console.error(`❌ Signup error: ${errorMessage}`);
+      throw err;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [login]);
+
+  /**
    * Logout handler
-   * Clears user state
+   * Clears user state and removes token
    */
   const logout = useCallback(() => {
-    const currentUser = user?.username || "Unknown user";
+    const currentUser = user?.name || "Unknown user";
     setUser(null);
+    setToken(null);
     setError(null);
+    localStorage.removeItem("authToken");
+    localStorage.removeItem("authUser");
     console.log(`✅ ${currentUser} logged out`);
-  }, [user?.username]);
+  }, [user?.name]);
 
   /**
    * Clear error state
@@ -90,11 +156,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null);
   }, []);
 
+
   const value: AuthContextType = {
     user,
+    token,
     isLoading,
     error,
     login,
+    signup,
     logout,
     clearError,
   };
