@@ -2111,3 +2111,246 @@ Global state management with Context API provides a clean, maintainable solution
 
 **Key Takeaway**: "Context API + Custom Hooks is the sweet spot for global state management in React applications. It eliminates prop drilling while keeping the code simple, maintainable, and performant."
 
+---
+
+## Prisma Performance & Transactions
+
+### 1. Transaction Scenarios & Atomicity
+We use **Prisma Transactions** (`prisma.$transaction`) to ensure data integrity when multiple related operations must succeed or fail together.
+
+**Scenario**: Creating a `Team` and adding the creator as the first `TeamMember`.
+- **Logic**:
+  1. Create `User` (if not exists).
+  2. Create `Team`.
+  3. Create `TeamMember` linking `User` and `Team`.
+- **Atomicity**: If step 3 fails, the entire transaction rolls back, preventing "orphan" teams with no members.
+
+**Implementation Example**:
+```typescript
+await prisma.$transaction(async (tx) => {
+  const team = await tx.team.create({ ... });
+  await tx.teamMember.create({ data: { teamId: team.id, ... } });
+});
+```
+
+### 2. Rollback Verification
+We simulate failures to verify rollback behavior.
+- In `server-side/src/transaction-demo.ts`, the `runRollback()` function intentionally throws an error inside a transaction.
+- **Result**: The database remains unchanged (no partial data written), confirming atomicity.
+
+### 3. Database Indexes for Performance
+We added specific indexes to `schema.prisma` to optimize frequent query patterns:
+- **`@@index([status])` on Project**: Optimizes filtering projects by status (e.g., "Active" vs "Archived").
+- **`@@index([userId])` on Task**: speeds up fetching a user's task list.
+- **`@@index([teamId])` on Project**: Speeds up retrieving all projects for a specific team.
+
+To apply these changes:
+```bash
+npx prisma migrate dev --name add_indexes
+```
+
+### 4. Query Optimization Strategy
+We optimize Prisma queries to prevent N+1 issues and over-fetching:
+- **Field Selection**: Using `select: { id: true, name: true }` instead of fetching the entire object reduces payload size.
+- **Batch Operations**: Using `createMany` for bulk inserts reduces round-trips to the database.
+- **Pagination**: Using `skip` and `take` prevents loading thousands of rows at once.
+
+### 5. Running the Performance Demo
+A demonstration script is included to showcase transactions, rollbacks, and query optimizations.
+
+**Pre-requisites**:
+- Docker containers must be running (`docker compose up -d`).
+- `server-side` dependencies installed (`npm install`).
+
+**Run the Demo**:
+```bash
+cd server-side
+npm run prisma:demo
+```
+*Note: This script requires a running database connection.*
+
+## Input Validation with Zod
+
+We use **Zod** for schema validation to ensure data integrity before it reaches the database. This provides a type-safe way to validate API requests.
+
+### Why Zod?
+
+*   **Type Safety**: Zod schemas automatically infer TypeScript types.
+*   **Runtime Validation**: catches invalid data before it touches the DB.
+*   **User-Friendly Errors**: Provides clear messages (e.g., "Email is invalid").
+
+### Usage
+
+1.  **Define Schemas**: Located in `server-side/src/schemas`.
+2.  **Validate**: Use `schema.parseAsync(data)` or helper functions.
+
+### Running the Validation Demo
+
+We created a demo script to showcase Zod validation in action (success and failure cases).
+
+```bash
+cd server-side
+npm run validation:demo
+```
+
+### Example Code
+
+```typescript
+import { z } from 'zod';
+
+export const createUserSchema = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+});
+
+// Usage
+try {
+  const data = createUserSchema.parse(input);
+  // data is now typed and safe
+} catch (err) {
+  // handle validation error
+}
+```
+
+## Authorization Middleware (Role-Based Access)
+
+We implemented a flexible authorization system to restrict access to sensitive resources based on `UserRole` (ADMIN, USER).
+
+### How it Works
+
+1.  **Middleware Factory**: `requireRole(allowedRoles)` creates a validation function.
+2.  **Context**: Checks the `user.role` from the request context.
+3.  **Protection**: Throws `AuthorizationError` if the role is insufficient.
+
+### Running the Auth Demo
+
+```bash
+cd server-side
+npm run auth:demo
+```
+
+### Example Usage
+
+```typescript
+import { requireRole } from './middleware/authorize';
+import { UserRole } from '@prisma/client';
+
+const adminOnlyHandler = {
+  authorize: requireRole([UserRole.ADMIN]),
+  execute: async () => { /* ... */ }
+};
+```
+
+## Caching Layer (Redis)
+
+We implemented a **Cache-Aside** strategy using Redis to improve performance for expensive operations.
+
+### Configuration
+
+*   **Helper**: `server-side/src/lib/redis.ts` handles the connection.
+*   **Env Vars**: `REDIS_HOST` (default: 127.0.0.1) and `REDIS_PORT` (default: 6379).
+*   **Dependencies**: Requires a running Redis instance (e.g., via Docker).
+
+### Usage
+
+Use the `getOrSetCache` helper to wrap expensive calls.
+
+```typescript
+import { getOrSetCache } from './lib/redis';
+
+const data = await getOrSetCache('my-unique-key', async () => {
+  // Expensive DB call
+  return await db.query(...);
+}, 60); // TTL in seconds
+```
+
+### Running the Cache Demo
+
+To verify caching behavior (Hits vs Misses):
+
+```bash
+cd server-side
+npm run cache:demo
+```
+*Note: Ensure Redis is reachable at `127.0.0.1:6379`.*
+
+## File Uploads (AWS S3)
+
+We use **AWS S3 Pre-Signed URLs** for secure, direct-to-bucket uploads.
+
+### Helper
+Located in `server-side/src/lib/storage.ts`:
+- `generateUploadUrl(key, contentType)`: returns a short-lived URL for PUT requests.
+
+### Configuration
+Environment variables required:
+- `AWS_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY`
+- `AWS_REGION`
+- `AWS_BUCKET_NAME`
+
+### Running the Upload Demo
+Simulates the flow (Generating URL -> Client Upload -> DB Save).
+
+```bash
+# Verify implementation
+npm run upload:demo
+```
+*Note: Without real credentials, the S3 interaction is mocked or will fail gracefully.*
+
+## Frontend Architecture
+
+We use a modular component-based architecture for the Next.js frontend.
+
+### Directory Structure
+```
+client-side/app/          # Next.js App Router pages
+client-side/components/
+ ├── layout/              # Shared layout components
+ │    ├── Header.tsx      # Top navigation
+ │    ├── Sidebar.tsx     # Side navigation
+ │    └── LayoutWrapper.tsx # Wraps content with Header & Sidebar
+ ├── ui/                  # Reusable UI elements
+ │    ├── Button.tsx
+ │    ├── Card.tsx
+ │    └── InputField.tsx
+ └── index.ts             # Barrel exports
+```
+
+### Layout
+The `LayoutWrapper` in `app/layout.tsx` ensures that the `Header` and `Sidebar` are consistently applied to all pages.
+
+### Dashboard
+Visit `/dashboard` to see the shared layout and UI components in action.
+
+## Client-side Data Fetching (SWR)
+
+We use **SWR (Stale-While-Revalidate)** for efficient client-side data fetching.
+
+### Benefits over `useEffect` + `fetch`
+- **Automatic Caching**: Instant navigation between pages.
+- **Revalidation**: Updates data when window is refocused or network reconnects.
+- **Optimistic UI**: Mutate local data immediately while server updates in background.
+
+### Usage
+- `client-side/hooks/usePosts.ts`: Example hook wrapping SWR.
+- `client-side/app/swr-demo/page.tsx`: Demo page showing caching and mutation.
+
+**Try it out**: Visit `/swr-demo` and try adding a post!
+
+## Form Handling & Validation
+
+We use **React Hook Form** combined with **Zod** for performant, schema-based validation.
+
+### Benefits
+- **Performance**: Uncontrolled inputs minimize re-renders.
+- **Type Safety**: Zod schemas infer TypeScript types automatically.
+- **Reusability**: `FormInput` component handles error display logic.
+
+### Usage
+- `client-side/components/ui/FormInput.tsx`: Reusable wrapper for standard HTML inputs.
+- `client-side/app/form-demo/page.tsx`: Example complex form with validation rules.
+
+**Try it out**: Visit `/form-demo` to see validation in action.
+
+

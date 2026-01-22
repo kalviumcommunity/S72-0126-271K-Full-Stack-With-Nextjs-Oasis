@@ -2,7 +2,12 @@
   "scripts": {
     "prisma:migrate": "prisma migrate dev --name init_schema",
     "prisma:generate": "prisma generate",
-    "prisma:seed:manual": "ts-node prisma/seed.ts"
+    "prisma:seed:manual": "ts-node prisma/seed.ts",
+    "prisma:demo": "ts-node -T src/transaction-demo.ts",
+    "validation:demo": "ts-node -T src/validation-demo.ts",
+    "auth:demo": "ts-node -T src/auth-demo.ts",
+    "cache:demo": "ts-node -T src/cache-demo.ts",
+    "upload:demo": "ts-node -T src/upload-demo.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
@@ -13,10 +18,11 @@
     "typescript": "^5.7.0"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.972.0",
+    "@aws-sdk/s3-request-presigner": "^3.972.0",
     "@prisma/client": "^7.2.0",
-    "dotenv": "^17.2.3"
-  },
-  "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "dotenv": "^17.2.3",
+    "ioredis": "^5.9.2",
+    "zod": "^4.3.5"
   }
 }

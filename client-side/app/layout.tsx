@@ -1,3 +1,4 @@
+
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -19,6 +20,8 @@ export const metadata: Metadata = {
   description: "Context API and custom hooks for global state management",
 };
 
+import { LayoutWrapper } from "@/components/layout/LayoutWrapper";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -32,7 +35,9 @@ export default function RootLayout({
         {/* Global Context Providers - Wrap entire app for state access */}
         <AuthProvider>
           <UIProvider>
-            {children}
+            <LayoutWrapper>
+              {children}
+            </LayoutWrapper>
           </UIProvider>
         </AuthProvider>
       </body>
