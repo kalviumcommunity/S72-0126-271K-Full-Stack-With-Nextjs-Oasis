@@ -18,23 +18,25 @@
 import { useAuthContext } from "@/context/AuthContext";
 
 export function useAuth() {
-  const { user, isLoading, error, login, logout, clearError } = useAuthContext();
+  const { user, token, isLoading, error, login, signup, logout, clearError } = useAuthContext();
 
   return {
     // State
     user,
-    isAuthenticated: !!user,
+    token,
+    isAuthenticated: !!user && !!token,
     isLoading,
     error,
 
     // Methods
     login,
+    signup,
     logout,
     clearError,
 
     // Derived state
     userId: user?.id,
-    username: user?.username,
+    name: user?.name,
     email: user?.email,
   };
 }
