@@ -25,27 +25,42 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return;
 
-  // Navigation requests: try network, fall back to offline page
-  if (req.mode === 'navigate') {
-    event.respondWith(
-      fetch(req).catch(() => caches.match(OFFLINE_URL))
-    );
-    return;
-  }
-
-  // Same-origin static assets: stale-while-revalidate
   const url = new URL(req.url);
   const sameOrigin = url.origin === self.location.origin;
-  if (sameOrigin) {
+
+  // Navigation requests: try network with cache fallback
+  if (req.mode === 'navigate') {
     event.respondWith(
-      caches.match(req).then((cached) => {
-        const networkFetch = fetch(req).then((res) => {
+      fetch(req)
+        .then((res) => {
           if (res && res.ok) {
             const clone = res.clone();
             caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
           }
           return res;
-        }).catch(() => cached || caches.match(OFFLINE_URL));
+        })
+        .catch(() => 
+          caches.match(req).then((cached) => 
+            cached || caches.match(OFFLINE_URL)
+          )
+        )
+    );
+    return;
+  }
+
+  // Same-origin requests: stale-while-revalidate for assets
+  if (sameOrigin) {
+    event.respondWith(
+      caches.match(req).then((cached) => {
+        const networkFetch = fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+            }
+            return res;
+          })
+          .catch(() => cached);
         return cached || networkFetch;
       })
     );
