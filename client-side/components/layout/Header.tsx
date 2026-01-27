@@ -18,9 +18,9 @@ export const Header: React.FC = () => {
                     <Link href="/courses" className="hover:text-blue-600 transition-colors">
                         Courses
                     </Link>
-                    <Button variant="primary" size="sm" as="a" href="/login">
+                    <Link href="/auth/login" className="hover:text-blue-600 transition-colors">
                         Login
-                    </Button>
+                    </Link>
                 </nav>
             </div>
         </header>

@@ -1,5 +1,4 @@
 // Layoutexport * from './layout/Header';
-export * from './layout/Sidebar';
 export * from './layout/LayoutWrapper';
 
 // UI
