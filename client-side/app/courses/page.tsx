@@ -141,7 +141,7 @@ const CoursesPage = () => {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Section */}
         <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <h1 className="text-4xl md:text-5xl font-bold text-stone-900 mb-3 font-serif">
+          <h1 className="text-4xl md:text-5xl font-bold text-stone-900 mb-3 font-sans">
             My Courses
           </h1>
           <p className="text-lg text-stone-600 max-w-2xl">
@@ -256,7 +256,7 @@ const CoursesPage = () => {
                 </div>
 
                 {/* Title */}
-                <h3 className="text-xl font-bold text-stone-900 mb-2 group-hover:text-orange-600 transition-colors font-serif">
+                <h3 className="text-xl font-bold text-stone-900 mb-2 group-hover:text-orange-600 transition-colors font-sans">
                   {course.title}
                 </h3>
 
