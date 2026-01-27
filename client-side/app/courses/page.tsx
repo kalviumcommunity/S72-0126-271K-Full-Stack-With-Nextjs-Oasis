@@ -9,6 +9,7 @@ const CoursesPage = () => {
   const [courses, setCourses] = useState([
     {
       id: '1',
+      slug: 'typescript',
       title: 'Advanced TypeScript Patterns',
       instructor: 'Sarah Chen',
       category: 'development',
@@ -22,6 +23,7 @@ const CoursesPage = () => {
     },
     {
       id: '2',
+      slug: 'design',
       title: 'UI/UX Design Principles',
       instructor: 'Marcus Johnson',
       category: 'design',
@@ -35,6 +37,7 @@ const CoursesPage = () => {
     },
     {
       id: '3',
+      slug: 'architecture',
       title: 'Modern Web Architecture',
       instructor: 'Elena Rodriguez',
       category: 'tech',
@@ -48,6 +51,7 @@ const CoursesPage = () => {
     },
     {
       id: '4',
+      slug: 'product-management',
       title: 'Product Management Essentials',
       instructor: 'David Park',
       category: 'business',
@@ -61,6 +65,7 @@ const CoursesPage = () => {
     },
     {
       id: '5',
+      slug: 'react-performance',
       title: 'React Performance Optimization',
       instructor: 'Anna Kowalski',
       category: 'development',
@@ -74,6 +79,7 @@ const CoursesPage = () => {
     },
     {
       id: '6',
+      slug: 'design-systems',
       title: 'Design Systems Mastery',
       instructor: 'James Liu',
       category: 'design',
@@ -87,6 +93,7 @@ const CoursesPage = () => {
     },
     {
       id: '7',
+      slug: 'cloud-infrastructure',
       title: 'Cloud Infrastructure Deep Dive',
       instructor: 'Robert Martinez',
       category: 'tech',
@@ -281,7 +288,7 @@ const CoursesPage = () => {
 
                 {/* CTA Button */}
                 <button 
-                onClick={() => router.push('/courses/react')}
+                onClick={() => router.push(`/courses/${course.slug}`)}
                 className="w-full py-3 bg-stone-900 text-white font-medium rounded-xl hover:bg-stone-800 transition-colors duration-300 group-hover:shadow-lg cursor-pointer">
                   {course.progress === 0 ? 'Start Course' : 'Continue Learning'}
                 </button>
