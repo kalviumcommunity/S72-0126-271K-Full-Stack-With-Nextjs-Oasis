@@ -1,10 +1,13 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { Download, Clock, BookOpen, Check } from 'lucide-react';
+import { Download, Clock, BookOpen, Check, Wifi, WifiOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 const CoursesPage = () => {
   const [filter, setFilter] = useState('all');
+  const [isOnline, setIsOnline] = useState(true);
+  const [showCacheDebug, setShowCacheDebug] = useState(false);
+  const [cachedUrls, setCachedUrls] = useState<string[]>([]);
   const router = useRouter();
   const [courses, setCourses] = useState([
     {
@@ -127,6 +130,45 @@ const CoursesPage = () => {
         .then(registration => console.log('Service Worker registered:', registration))
         .catch(error => console.log('Service Worker registration failed:', error));
     }
+
+    // Check online/offline status
+    const updateOnlineStatus = () => setIsOnline(navigator.onLine);
+    updateOnlineStatus();
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // Check which courses are actually cached
+    const checkCachedCourses = async () => {
+      if ('caches' in window) {
+        try {
+          const cache = await caches.open('oasis-cache-v2');
+          const cachedRequests = await cache.keys();
+          const cachedPaths = cachedRequests.map(req => new URL(req.url).pathname);
+          
+          setCachedUrls(cachedPaths);
+          
+          setCourses(prevCourses => 
+            prevCourses.map(course => ({
+              ...course,
+              isCached: course.slug ? cachedPaths.includes(`/courses/${course.slug}`) : false
+            }))
+          );
+        } catch (error) {
+          console.error('Error checking cached courses:', error);
+        }
+      }
+    };
+
+    checkCachedCourses();
+    
+    // Refresh cache status every 2 seconds
+    const interval = setInterval(checkCachedCourses, 2000);
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+      clearInterval(interval);
+    };
   }, []);
 
   const filteredCourses = filter === 'all' 
@@ -146,6 +188,72 @@ const CoursesPage = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Online/Offline Status Banner */}
+        <div className={`mb-4 p-4 rounded-lg border-2 ${
+          isOnline 
+            ? 'bg-green-50 border-green-200' 
+            : 'bg-orange-50 border-orange-200'
+        }`}>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              {isOnline ? (
+                <Wifi className="w-5 h-5 text-green-600" />
+              ) : (
+                <WifiOff className="w-5 h-5 text-orange-600" />
+              )}
+              <div>
+                <p className={`font-semibold ${isOnline ? 'text-green-900' : 'text-orange-900'}`}>
+                  {isOnline ? 'Online Mode' : 'Offline Mode'}
+                </p>
+                <p className={`text-sm ${isOnline ? 'text-green-700' : 'text-orange-700'}`}>
+                  {isOnline 
+                    ? 'Visit courses to cache them for offline viewing' 
+                    : 'Only cached courses will load'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowCacheDebug(!showCacheDebug)}
+              className="px-4 py-2 bg-white border border-stone-300 rounded-lg text-sm font-medium hover:bg-stone-50 transition"
+            >
+              {showCacheDebug ? 'Hide' : 'Show'} Cache Info
+            </button>
+          </div>
+        </div>
+
+        {/* Cache Debug Panel */}
+        {showCacheDebug && (
+          <div className="mb-4 p-4 bg-white rounded-lg border border-stone-200">
+            <h3 className="font-bold text-stone-900 mb-2">Cached URLs ({cachedUrls.length}):</h3>
+            <div className="max-h-40 overflow-y-auto">
+              {cachedUrls.length === 0 ? (
+                <p className="text-sm text-stone-500">No URLs cached yet. Visit some course pages!</p>
+              ) : (
+                <ul className="space-y-1">
+                  {cachedUrls.map((url, i) => (
+                    <li key={i} className="text-xs font-mono text-stone-600 bg-stone-50 px-2 py-1 rounded">
+                      {url}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button
+              onClick={async () => {
+                if (confirm('Clear all cached data?')) {
+                  const cache = await caches.open('oasis-cache-v2');
+                  const keys = await cache.keys();
+                  await Promise.all(keys.map(key => cache.delete(key)));
+                  window.location.reload();
+                }
+              }}
+              className="mt-3 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition"
+            >
+              Clear All Cache
+            </button>
+          </div>
+        )}
+
         {/* Hero Section */}
         <div className="mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
           <h1 className="text-4xl md:text-5xl font-bold text-stone-900 mb-3 font-sans">

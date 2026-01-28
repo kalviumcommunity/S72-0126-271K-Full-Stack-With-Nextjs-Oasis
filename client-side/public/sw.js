@@ -1,5 +1,5 @@
 /* OASIS simple offline service worker */
-const CACHE_NAME = 'oasis-cache-v1';
+const CACHE_NAME = 'oasis-cache-v2';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', (event) => {
@@ -31,27 +31,36 @@ self.addEventListener('fetch', (event) => {
   // Navigation requests: try network with cache fallback
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          if (res && res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
-          }
-          return res;
-        })
-        .catch(() => 
-          caches.match(req).then((cached) => 
-            cached || caches.match(OFFLINE_URL)
-          )
-        )
+      caches.match(req).then((cachedResponse) => {
+        // Try network first
+        return fetch(req)
+          .then((res) => {
+            if (res && res.ok) {
+              const clone = res.clone();
+              caches.open(CACHE_NAME).then((cache) => cache.put(req, clone));
+            }
+            return res;
+          })
+          .catch(() => {
+            // If network fails, use cache
+            if (cachedResponse) {
+              console.log('📦 Serving from cache (offline):', req.url);
+              return cachedResponse;
+            }
+            // No cache, show offline page
+            console.log('❌ Not cached, showing offline page:', req.url);
+            return caches.match(OFFLINE_URL);
+          });
+      })
     );
     return;
   }
 
-  // Same-origin requests: stale-while-revalidate for assets
+  // Same-origin requests: Cache-first when offline, network-first when online
   if (sameOrigin) {
     event.respondWith(
       caches.match(req).then((cached) => {
+        // If online, try network first
         const networkFetch = fetch(req)
           .then((res) => {
             if (res && res.ok) {
@@ -60,7 +69,12 @@ self.addEventListener('fetch', (event) => {
             }
             return res;
           })
-          .catch(() => cached);
+          .catch(() => {
+            console.log('📦 Network failed, using cache:', req.url);
+            return cached;
+          });
+        
+        // Return cached if available, otherwise wait for network
         return cached || networkFetch;
       })
     );

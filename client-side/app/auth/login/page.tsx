@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   // Redirect if already authenticated
   if (isAuthenticated) {
-    router.push("/");
+    router.push("/dashboard");
   }
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
@@ -35,7 +35,7 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      router.push("/");
+      router.push("/dashboard");
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Login failed";
       setLocalError(errorMessage);
